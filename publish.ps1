@@ -110,6 +110,8 @@ $lines = foreach ($file in (Get-ChildItem $out -File | Where-Object { $_.Extensi
     $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
     "$hash  $($file.Name)"
 }
-$lines | Set-Content -Path $sums -Encoding ascii
+# ⚠️ 用 WriteAllText 写 LF，不用 Set-Content：Set-Content 在 Windows PowerShell 上写 CRLF，
+#    而 `sha256sum -c` 在 Linux 上会把行尾那个 \r 当成文件名的一部分（实测：No such file or directory）。
+[System.IO.File]::WriteAllText($sums, (($lines -join "`n") + "`n"))
 Write-Host ("SHA256SUMS — {0} 行" -f @($lines).Count)
 Write-Host "产物在 $out"
