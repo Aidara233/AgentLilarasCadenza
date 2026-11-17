@@ -106,15 +106,23 @@ run.cmd / run.sh   解压就能跑的那一条命令
 
 跑过：
 
-- `dotnet build` 零警告；`head/e2e/run.ps1 -Scripts 1-boot,22-proxy` 在 relay 上全绿（页面启动、经 `/core` 连上、
-  4xx 原样透传、`/info` 不被静态目录吞掉）。
-- 手动：`/config.json`、`/build.json`、静态白名单（`serve.ps1` / `e2e/` 一律 404）、
-  `/core/health|info|axes|sessions` 转发、WS 握手（子协议 `cadenza`）与一次命令往返 + 正常关闭。
-- 起核心那条路：隔离数据根 + 空闲端口上实测「由头起核心 → 从横幅抓到 token → 头替页面带着它」。
+- `dotnet build AgentLilarasCadenza.slnx`（核心 + 旧头 + relay + 两套测试项目）零警告零错误。
+- `head/e2e/run.ps1` 在 relay 上：`1-boot`、`22-proxy`、`2-flow`、`3-asks-axes`、`4-views-layout`
+  全部 `0 failed, 0 uncaught`。也就是说流式输出、工具调用、询问卡、轴与权限、打断、计划、
+  用量账本这些走会话的路，都是**经新反代**跑通的。
+- 手动：`/config.json`、`/build.json`、静态白名单（Cadenza 布局与旧 UI 布局各一遍：
+  `serve.ps1` / `e2e/mock.cs` / `README.md` 一律 404）、`/core/health|info|axes|sessions` 转发、
+  WS 握手（子协议 `cadenza`）+ 一次命令往返 + 正常关闭握手。
+- 起核心：隔离数据根 + 空闲端口上，源码态（`dotnet run --project core/src/Lilara.Cli`）与
+  发布态（包里的 `lilara.exe`）各验一次「由头起核心 → 从横幅抓到 token → `auth: "head"`」。
+- 一体包：`publish.ps1 -Rids win-x64` 产出目录与 zip 完整，解包目录里 `run.cmd` 直接能跑。
 
 **没有**验过：
 
 - 真实模型端到端（需要真的 provider key 与账单）；
-- `linux-x64` 产物（本机是 Windows，只核了产物形状）；
-- Ctrl+C 时「先 `quit` 再兜底 kill」这条收尾路径（代码在 `CoreSupervisor.DisposeAsync`，
-  目前只用强制结束间接验过「不会把核心留成孤儿」）。
+- `linux-x64` 产物（本机是 Windows：只核了进程能产出、包里的可执行位是 755）；
+- Ctrl+C 时「先给核心写 `quit`、5 秒不走再整棵进程树 kill」那条收尾路径
+  （代码在 `CoreSupervisor.DisposeAsync`；目前只验到「被强制结束时不会把核心留成孤儿」这一反方向）。
+- ⚠️ **子模块里有一条未推送的提交**：`head/` 的 `57923b2`（e2e 改走 relay）。
+  在它推上 `origin` 之前，别人克隆本仓跑 `git submodule update --init` 会拉不到这个提交。
+
