@@ -24,7 +24,10 @@ using Microsoft.Extensions.Logging;
 // 换设备/换地址/上隧道都要动核心的白名单；经这一层之后，凭据留在进程里，
 // 页面只跟一个源说话，核心的 `LILARA_ALLOWED_ORIGIN` 也就用不上了。
 
-const string RelayVersion = "1.1.0";
+// 版本号**只有一个来源**：`Lilara.Relay.csproj` 的 `<Version>`（发布时 `publish.ps1` 还会用
+// `-p:Version` 覆盖它）。这里读程序集，不再手写一个字面量——手写就是第二份副本，
+// 而它漂起来的症状是「包是 1.1.0、横幅还印 1.0.0」，且**没有任何东西会红**。
+var relayVersion = VersionText(typeof(RelayOptions).Assembly.GetName().Version);
 
 // 控制台显式设成 UTF-8：横幅是中文，而 Windows 的重定向/管道默认按机器代码页走——
 // 日志被重定向到文件时（本机实测）会变成一串乱码，等于横幅白印（核心仓 CLI 同一条教训）。
@@ -62,7 +65,7 @@ if (root is null)
     return 1;
 }
 
-Console.WriteLine($"LILARA 中转节点 — Lilara.Relay {RelayVersion}");
+Console.WriteLine($"LILARA 中转节点 — Lilara.Relay {relayVersion}");
 Console.WriteLine($"  页面 {root}");
 
 // ---- 核心：在就接入、不在就起 --------------------------------------------------
@@ -160,7 +163,7 @@ app.MapGet("/build.json", () =>
         indexWritten,
         appJsBytes,
         appJsWritten,
-        relayVersion = RelayVersion,
+        relayVersion,
         coreReady = supervisor.Ready,
         coreSpawnedByRelay = supervisor.Spawned,
     });
@@ -271,4 +274,12 @@ static async Task<int> HealthProbeAsync(RelayOptions options)
     {
         return 1;
     }
+}
+
+// 程序集的版本：`Version` 的第四段（Revision）对用户没有意义，只取前三段。
+// ⚠️ 手写 `ToString(3)` 会在 `Version(1,0)` 那种两段式上抛（Build = -1），所以自己拼。
+static string VersionText(Version? version)
+{
+    if (version is null) return "?";
+    return $"{version.Major}.{Math.Max(version.Minor, 0)}.{Math.Max(version.Build, 0)}";
 }
