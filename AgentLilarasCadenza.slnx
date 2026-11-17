@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/core/" />
+  <Folder Name="/core/src/">
+    <Project Path="core/src/Lilara.Cli/Lilara.Cli.csproj" />
+    <Project Path="core/src/Lilara.Core/Lilara.Core.csproj" />
+  </Folder>
+  <Folder Name="/core/src/Lilara.Head/">
+    <Project Path="core/src/Lilara.Head/head.csproj" />
+  </Folder>
+  <Folder Name="/core/tests/">
+    <Project Path="core/tests/Lilara.Core.Contract.Tests/Lilara.Core.Contract.Tests.csproj" />
+    <Project Path="core/tests/Lilara.Core.Tests/Lilara.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Lilara.Relay/Lilara.Relay.csproj" />
+  </Folder>
+</Solution>

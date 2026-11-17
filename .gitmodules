@@ -1,0 +1,6 @@
+[submodule "core"]
+	path = core
+	url = git@github.com:Aidara233/AgentLilaraCode.git
+[submodule "head"]
+	path = head
+	url = git@github.com:Aidara233/Cadenza.git

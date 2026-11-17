@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Lilara.Relay</RootNamespace>
+    <AssemblyName>lilara-relay</AssemblyName>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 头要自己听一个端口（Kestrel），所以用共享框架而不是包。
+         ⚠️ 本**项目**不引用 `Lilara.Core` 的任何代码——头与核心之间只有 HTTP/WS 与进程边界
+         （core 仓 docs/05 §2「头是可替换件」）。这既让头能单独发布，也让「换一个头」不必动核心。 -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>

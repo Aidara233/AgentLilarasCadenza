@@ -1,0 +1,16 @@
+# 构建产物
+bin/
+obj/
+.vs/
+.idea/
+*.user
+*.suo
+
+# publish.ps1 的产物（一体包，不进版本库）
+publish/
+
+# 本地临时 / 日志
+*.log
+*.tmp
+
+# ⚠️ 两个子模块各自带 .gitignore（core/ 与 head/），这里只列本仓自己的产物。
