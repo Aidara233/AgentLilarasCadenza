@@ -79,6 +79,9 @@ internal sealed record RelayOptions
     /// <summary>显式指定核心的可执行文件（<c>--core-exe</c>）。不给就按「可执行文件旁边 → 仓里的 CLI 项目」找。</summary>
     public string? CoreExe { get; init; }
 
+    /// <summary>上游核心的地址，**不带尾斜杠**（横幅、`/config.json`、`/build.json` 用的是同一个字面量）。</summary>
+    public string CoreText => Core.GetLeftPart(UriPartial.Path).TrimEnd('/');
+
     public sealed record ParseResult(RelayOptions? Options, string? Error, bool Help);
 
     /// <summary>

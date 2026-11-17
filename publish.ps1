@@ -1,4 +1,4 @@
-# 一体包：核心 + 中转节点 + Cadenza 页面，解压就能跑。
+﻿# 一体包：核心 + 中转节点 + Cadenza 页面，解压就能跑。
 #
 #   powershell -NoProfile -ExecutionPolicy Bypass -File publish.ps1 [-Version 1.0.0] [-Rids win-x64,linux-x64]
 #
@@ -19,6 +19,8 @@ param(
     [string[]]$Rids = @("win-x64", "linux-x64")
 )
 $ErrorActionPreference = "Stop"
+
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
 
 $root = $PSScriptRoot
 $out = Join-Path $root "publish"
@@ -108,6 +110,6 @@ $lines = foreach ($file in (Get-ChildItem $out -File | Where-Object { $_.Extensi
     $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
     "$hash  $($file.Name)"
 }
-$lines | Set-Content -Path $sums -Encoding utf8NoBOM
+$lines | Set-Content -Path $sums -Encoding ascii
 Write-Host ("SHA256SUMS — {0} 行" -f @($lines).Count)
 Write-Host "产物在 $out"

@@ -126,7 +126,7 @@ app.MapGet("/config.json", (HttpRequest request) =>
         return Results.Json(new
         {
             proxy = "/core",
-            upstream = UpstreamText(options.Core),
+            upstream = options.CoreText,
             auth = supervisor.Token is null ? "page" : "head",
             wsProtocol = "cadenza",
         });
@@ -135,7 +135,7 @@ app.MapGet("/config.json", (HttpRequest request) =>
     var host = request.Host.Host;
     var core = options.Core.IsLoopback && !string.IsNullOrEmpty(host)
         ? $"{options.Core.Scheme}://{HostForUrl(host)}:{options.Core.Port}"
-        : UpstreamText(options.Core);
+        : options.CoreText;
     return Results.Json(new { core });
 });
 
@@ -151,7 +151,7 @@ app.MapGet("/build.json", () =>
     {
         servedFrom,
         mode = options.Direct ? "direct" : "proxy",
-        upstream = UpstreamText(options.Core),
+        upstream = options.CoreText,
         indexPath = Path.Combine(servedFrom, "index.html"),
         indexWritten,
         appJsBytes,
@@ -191,7 +191,7 @@ static void PrintBanner(RelayOptions options, string root, CoreSupervisor superv
 {
     var open = options.Bind is "127.0.0.1" or "localhost" ? "仅本机" : "对局域网开放";
     Console.WriteLine($"  听 http://{HostForUrl(options.Bind)}:{options.Port}（{open}）");
-    Console.WriteLine($"  核心 {UpstreamText(options.Core)}"
+    Console.WriteLine($"  核心 {options.CoreText}"
                       + (supervisor.Spawned ? "（**由本节点起的**，退出时一并收掉）"
                           : supervisor.Ready ? "（已在跑，只接入）" : "（没应答）"));
     Console.WriteLine(supervisor.Token is null
@@ -251,5 +251,3 @@ static string HostForUrl(string address)
     if (a.Length > 2 && a[0] == '[' && a[^1] == ']') return a;
     return a.Contains(':') ? $"[{a}]" : a;
 }
-
-static string UpstreamText(Uri core) => core.GetLeftPart(UriPartial.Path).TrimEnd('/');

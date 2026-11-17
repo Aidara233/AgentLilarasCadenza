@@ -1,22 +1,26 @@
 @echo off
-rem 一条命令：编 relay（增量）→ 起它。核心由 relay 按需起起来（已在跑则只接入）。
+rem One command: build the relay (incremental), then run it. The relay starts the core
+rem itself when nothing answers on /health (an already-running core is only attached to).
 rem
-rem ⚠️ 刻意**不用** `dotnet run`：那会多一层进程，于是 Ctrl+C 先到 dotnet、再到 relay，
-rem    「先给核心写 quit、再兜底 kill」那条收尾就多绕一圈、也更难判断谁该负责。
-rem    这里编完直接跑 exe，控制台里那个进程就是 relay 本身。
-rem ⚠️ 字符集：下面的中文只是注释；控制台的中文由 relay 自己设成 UTF-8（它启动时会设）。
-chcp 65001 >nul 2>&1
+rem NOTE: this file is deliberately PURE ASCII. cmd.exe reads a .cmd in the OEM code page,
+rem and switching it mid-file (chcp) garbles the rest of the parse - measured here: the lines
+rem after the Chinese comment produced "not recognized as an internal or external command".
+rem The console's UTF-8 output is set by the relay itself, so nothing is lost.
+rem
+rem NOTE: it does NOT use `dotnet run`. That adds a process layer, so Ctrl+C reaches dotnet
+rem first and the shutdown path (write "quit" to the core, then fall back to a tree kill)
+rem gets harder to reason about. Build, then exec the exe: the console's process IS the relay.
 setlocal
 set "ROOT=%~dp0"
 
-rem 发布包里（publish.ps1 的产物）：可执行文件就在它旁边
+rem Published layout (publish.ps1 output): the executables sit next to this file.
 if exist "%ROOT%lilara-relay.exe" (
   "%ROOT%lilara-relay.exe" %*
   exit /b %ERRORLEVEL%
 )
 
-rem 源码里：增量构建一次，再跑产物
-dotnet build "%ROOT%src\Lilara.Relay\Lilara.Relay.csproj" -c Debug -nologo -v q
+rem Source layout: one incremental build, then run it.
+dotnet build "%ROOT%src\Lilara.Relay\Lilara.Relay.csproj" -c Debug -nologo -v q -clp:NoSummary
 if errorlevel 1 exit /b 1
 "%ROOT%src\Lilara.Relay\bin\Debug\net10.0\lilara-relay.exe" %*
 exit /b %ERRORLEVEL%

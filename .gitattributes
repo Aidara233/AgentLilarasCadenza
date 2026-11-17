@@ -1,0 +1,12 @@
+# 行尾：这一条不是洁癖，是「脚本能不能跑」。
+#
+# ⚠️ cmd.exe 只认 CRLF 的 .cmd：LF 的批处理会被它按字节位置读错，症状是「build 跑完了、
+# 但中间几行被当成命令」——本机实测报过「'接跑' 不是内部或外部命令」。
+# ⚠️ 而本仓 `core.autocrlf=input`：不写这一条的话，仓库里存的是 LF、检出还是 LF，
+# 于是「我这边好好的」在另一台机器上必坏。
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.sh  text eol=lf
+
+# 其余按 git 的自动判定
+* text=auto

@@ -13,5 +13,5 @@ if [ -x "$ROOT/lilara-relay" ]; then
     exec "$ROOT/lilara-relay" "$@"
 fi
 
-dotnet build "$ROOT/src/Lilara.Relay/Lilara.Relay.csproj" -c Debug -nologo -v q
+dotnet build "$ROOT/src/Lilara.Relay/Lilara.Relay.csproj" -c Debug -nologo -v q -clp:NoSummary
 exec "$ROOT/src/Lilara.Relay/bin/Debug/net10.0/lilara-relay" "$@"

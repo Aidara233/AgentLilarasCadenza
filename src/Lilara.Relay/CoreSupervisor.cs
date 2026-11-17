@@ -42,7 +42,7 @@ internal sealed class CoreSupervisor(RelayOptions options) : IAsyncDisposable
         if (await HealthyAsync(ct))
         {
             Ready = true;
-            Console.WriteLine($"  核心已在跑：{options.Core}（头只接入，不另起——一个数据根只允许一个核心）");
+            Console.WriteLine($"  核心已在跑：{options.CoreText}（头只接入，不另起——一个数据根只允许一个核心）");
             await ReportAuthAsync(ct);
             return;
         }
@@ -56,7 +56,7 @@ internal sealed class CoreSupervisor(RelayOptions options) : IAsyncDisposable
         // ⚠️ 上游不在本机时**绝不去起**：那是别人的核心，起一个本机的只会让人对着错的端口排错。
         if (!IsLoopback(options.Core))
         {
-            Warn($"上游 {options.Core} 不在本机，头不去启动它。");
+            Warn($"上游 {options.CoreText} 不在本机，头不去启动它。");
             return;
         }
 
