@@ -21,8 +21,6 @@ namespace Lilara.Relay;
 /// </summary>
 internal static class UiRoot
 {
-    private static readonly string[] AllowedExt = [".html", ".css", ".js"];
-
     /// <summary>
     /// 找页面根目录：显式给的 &gt; 可执行文件旁边的 <c>head/</c>（发布布局）&gt; 从可执行文件往上找到的
     /// <c>head/index.html</c>（源码布局）。
@@ -111,11 +109,14 @@ internal static class UiRoot
         contentType = "";
 
         var ext = Path.GetExtension(requestPath);
-        var allowed = ext is not null
-                      && AllowedExt.Contains(ext, StringComparer.OrdinalIgnoreCase)
-                      && (requestPath == "/index.html"
-                          || requestPath.StartsWith("/css/", StringComparison.Ordinal)
-                          || requestPath.StartsWith("/js/", StringComparison.Ordinal));
+        // ⚠️ 放行的形状是「根下一层的页面文件」或「css/ 、js/ 里的一层」——不是「这些扩展名随便放」。
+        // 旧 UI（core/src/Lilara.Head/wwwroot）用的是**根目录**的 index.html + app.js，
+        // 而 Cadenza 是 index.html + css/ + js/：两种布局都要能服务，所以根下一层的
+        // .html/.js/.css 也算白名单。子目录只认 css/ 与 js/ 这两个名字。
+        var segments = requestPath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var shallow = segments.Length == 1
+                      || (segments.Length == 2 && segments[0] is "css" or "js");
+        var allowed = (ext is ".html" or ".css" or ".js") && shallow;
         if (!allowed) return false;
 
         var full = Path.GetFullPath(Path.Combine(root, requestPath.TrimStart('/').Replace('\\', '/').Replace('/', Path.DirectorySeparatorChar)));
