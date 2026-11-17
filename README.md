@@ -100,6 +100,11 @@ run.cmd / run.sh   解压就能跑的那一条命令
 
 再加一个 zip / tar.gz。**这是核心仓 `docs/实现现状.md` 里「没有统一的发布/安装/启动包」那条的落点。**
 
+推标签就自动出包：`git tag v1.1.0 && git push origin v1.1.0` → `.github/workflows/release.yml`
+在 windows-latest 上跑同一条 `publish.ps1`，把两个包与 `SHA256SUMS` 挂成 Release
+（核心仓与头那个仓各有一份同形的、只出自己那半的工作流）。
+
+
 ---
 
 ## Docker
