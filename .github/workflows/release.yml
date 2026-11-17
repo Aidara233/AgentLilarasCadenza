@@ -1,0 +1,81 @@
+# 推 v* 标签 → 出一体包并挂到 Release。
+#
+#   git tag v1.1.0 && git push origin v1.1.0
+#
+# 这个仓的包是**三个东西的合体**（核心 + 中转节点 + Cadenza 页面），所以 checkout 必须带
+# 子模块：子模块指针钉在哪，包里的核心与页面就是哪一版——这也是本仓的「版本」唯一的定义。
+#
+# ⚠️ 跑在 windows-latest 上，理由与核心仓那条相同：publish.ps1 是 Windows 形态，
+#    而它在 Windows 上能跨发布 linux-x64（本机验过）。
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: 版本号（取自标签，去掉 v）
+        id: v
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME.TrimStart("v")
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: 这一版钉的是哪两个子模块提交（写进 Release 说明）
+        id: pin
+        shell: pwsh
+        run: |
+          $core = (git -C core rev-parse --short HEAD)
+          $head = (git -C head rev-parse --short HEAD)
+          "core=$core" >> $env:GITHUB_OUTPUT
+          "head=$head" >> $env:GITHUB_OUTPUT
+
+      - name: GNU tar 进 PATH（publish.ps1 用它压 linux 包并置可执行位）
+        shell: pwsh
+        run: echo "C:\Program Files\Git\usr\bin" >> $env:GITHUB_PATH
+
+      - name: 出包
+        shell: pwsh
+        run: ./publish.ps1 -Version ${{ steps.v.outputs.version }}
+
+      - name: 挂到 Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $assets = @(Get-ChildItem publish -File |
+            Where-Object { $_.Extension -in ".zip", ".gz", ".txt" } |
+            ForEach-Object { $_.FullName })
+          if (-not $assets) { throw "publish 里没有产物，别把空 release 发出去" }
+
+          $notes = @(
+            "解压就是一个完整的 Lilara：``lilara``（核心）+ ``lilara-relay``（中转节点）+ ``head/``（Cadenza 页面）+ ``run.cmd`` / ``run.sh``。"
+            "两个可执行文件都是自包含单文件（目标机不需要装 .NET）；校验和见 ``SHA256SUMS``。"
+            ""
+            "跑：``./run.sh``（或 ``run.cmd``）——头会先探核心（``/health``），没有就自己起一个，然后开页面。"
+            ""
+            "这一版钉住的子模块提交：核心 ``${{ steps.pin.outputs.core }}``、头 ``${{ steps.pin.outputs.head }}``。"
+            ""
+            "Docker：仓里有 ``Dockerfile`` 与 ``docker-compose.yml``，``docker compose up -d --build`` 即可（镜像不在本 Release 里发）。"
+          )
+          Set-Content -Path notes.md -Value $notes -Encoding utf8
+
+          gh release create $tag $assets --title "Lilara $tag（核心 + 头 + 中转节点）" --notes-file notes.md 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release upload $tag $assets --clobber
+          }
