@@ -20,7 +20,11 @@ if exist "%ROOT%lilara-relay.exe" (
 )
 
 rem Source layout: one incremental build, then run it.
-dotnet build "%ROOT%src\Lilara.Relay\Lilara.Relay.csproj" -c Debug -nologo -v q -clp:NoSummary
-if errorlevel 1 exit /b 1
+dotnet build "%ROOT%src\Lilara.Relay\Lilara.Relay.csproj" -c Debug -nologo -v q -clp:NoSummary > "%TEMP%\lilara-relay-build.log" 2>&1
+if errorlevel 1 (
+  rem Build failures must not be swallowed by this quiet step: dump the whole log.
+  type "%TEMP%\lilara-relay-build.log"
+  exit /b 1
+)
 "%ROOT%src\Lilara.Relay\bin\Debug\net10.0\lilara-relay.exe" %*
 exit /b %ERRORLEVEL%

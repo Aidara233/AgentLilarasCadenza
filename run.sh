@@ -13,5 +13,9 @@ if [ -x "$ROOT/lilara-relay" ]; then
     exec "$ROOT/lilara-relay" "$@"
 fi
 
-dotnet build "$ROOT/src/Lilara.Relay/Lilara.Relay.csproj" -c Debug -nologo -v q -clp:NoSummary
+dotnet build "$ROOT/src/Lilara.Relay/Lilara.Relay.csproj" -c Debug -nologo -v q -clp:NoSummary > /tmp/lilara-relay-build.log 2>&1 || {
+    # 构建出错时把整份日志倒出来：这条命令的「安静」不该把错误一起吞掉。
+    cat /tmp/lilara-relay-build.log
+    exit 1
+}
 exec "$ROOT/src/Lilara.Relay/bin/Debug/net10.0/lilara-relay" "$@"
