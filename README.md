@@ -86,7 +86,7 @@ git -C core  status / git -C head status    # 看各自有没有本地改动
 ## 发布（一体包）
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File publish.ps1 [-Version 1.0.0] [-Rids win-x64,linux-x64]
+powershell -NoProfile -ExecutionPolicy Bypass -File publish.ps1 [-Version 1.1.0] [-Rids win-x64,linux-x64]
 ```
 
 产物 `publish/lilara-<ver>-<rid>/` 里是：
@@ -99,6 +99,42 @@ run.cmd / run.sh   解压就能跑的那一条命令
 ```
 
 再加一个 zip / tar.gz。**这是核心仓 `docs/实现现状.md` 里「没有统一的发布/安装/启动包」那条的落点。**
+
+---
+
+## Docker
+
+```bash
+docker compose up -d --build        # 也可以：docker build -t aidara233/agentlilarascadenza:1.1.0 .
+# 打开 http://127.0.0.1:17990
+```
+
+容器里仍然是**两个进程**（核心 + 中转节点），拓扑与宿主机一致；差别只有三处，且都是刻意的：
+
+| | 宿主机 | 容器 |
+|---|---|---|
+| 核心监听 | `0.0.0.0:17988` | **`127.0.0.1:17988`**（只有同一个容器里的头够得着；`-p` 只映射 17990） |
+| 二进制 | 自包含单文件（目标机不装 .NET） | 框架依赖（镜像里本来就有 ASP.NET 运行时；自包含要多塞 ~100 MB） |
+| 健康检查 | 自己看横幅 | `HEALTHCHECK` 跑 `lilara-relay --health`（探 `/core/health`，即「头在听 **且** 核心应答」） |
+
+两个卷，职责不同：
+
+- `/data` —— 数据根（会话、提供商 key、用量账本）。容器换了、重建了，它要留着。
+- `/workspace` —— **核心拿进程的工作目录当项目键**，会话是按项目分目录存的。换成你自己的项目：
+  `LILARA_WORKSPACE=/path/to/your/project docker compose up -d`。
+
+想开访问令牌：`LILARA_AUTH=1 docker compose up -d`。token 打印在容器日志的启动横幅里，**头会自己接住**
+并转给核心，页面一条凭据都不经手（`docker compose logs lilara | grep token`）。
+
+想让核心也能被别的头 / 直连客户端连上：`LILARA_BIND=0.0.0.0` 并在 compose 里加 `- "17988:17988"`。
+⚠️ 核心默认**不校验** token——把它露出去之前，先设 `LILARA_AUTH=1`。
+
+`docker-compose.yml` 末尾另有一段注释掉的**分体拓扑**（核心一个容器、头一个容器，头用
+`--core http://core:17988 --no-spawn` 指向它）——分体时 `--no-spawn` 不是可选项：头起不了另一个
+容器里的核心，硬起只会得到一个撞上数据根锁的本机核心，而症状与「核心没起来」完全同形。
+
+⚠️ 挂载宿主目录时属主可能对不上（镜像里的用户是 `10001`）。两种处理：把宿主目录
+`chown 10001`，或者 `docker run --user $(id -u):$(id -g) …`（这时 `/data` 也要可写）。
 
 ---
 
@@ -120,9 +156,13 @@ run.cmd / run.sh   解压就能跑的那一条命令
 **没有**验过：
 
 - 真实模型端到端（需要真的 provider key 与账单）；
-- `linux-x64` 产物（本机是 Windows：只核了进程能产出、包里的可执行位是 755）；
+- `linux-x64` **自包含包在真机上跑**（本机是 Windows：只核了产物是 ELF、包里可执行位 755）；
 - Ctrl+C 时「先给核心写 `quit`、5 秒不走再整棵进程树 kill」那条收尾路径
   （代码在 `CoreSupervisor.DisposeAsync`；目前只验到「被强制结束时不会把核心留成孤儿」这一反方向）。
-- ⚠️ **子模块里有一条未推送的提交**：`head/` 的 `57923b2`（e2e 改走 relay）。
-  在它推上 `origin` 之前，别人克隆本仓跑 `git submodule update --init` 会拉不到这个提交。
+- **Docker 镜像本身没构建过**：这台机器没装 docker。Dockerfile 里那两条 `dotnet publish`
+  在本机按 `linux-x64` 逐字跑过（产物是 ELF apphost），`--health` 也正反两例验过，
+  但「镜像能起来、卷能挂、HEALTHCHECK 真的变 healthy」这三件只能在你那边第一次 `docker compose up` 时见分晓。
+- ⚠️ **子模块的版本指针**：本仓钉住的是 `core/` 与 `head/` 各自的提交，不是标签。
+  1.1.0 那一版对应哪两个提交，看 `git submodule status`。
+
 

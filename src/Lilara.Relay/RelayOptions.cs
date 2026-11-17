@@ -79,6 +79,22 @@ internal sealed record RelayOptions
     /// <summary>显式指定核心的可执行文件（<c>--core-exe</c>）。不给就按「可执行文件旁边 → 仓里的 CLI 项目」找。</summary>
     public string? CoreExe { get; init; }
 
+    /// <summary>
+    /// 当健康检查用：探自己那个端口上的 <c>/core/health</c>，通就退 0、不通退 1，**不起任何服务**。
+    ///
+    /// <para>
+    /// ⚠️ 存在的理由很具体：Docker 的 <c>HEALTHCHECK</c> 需要一条命令，而基础镜像里
+    /// 没有 curl 也没有 wget（<c>aspnet</c> 那个镜像不带）。为了健康检查往镜像里装一个 HTTP
+    /// 客户端，比让程序自己多一个开关更贵——而这条路径本来就在它手里。
+    /// </para>
+    ///
+    /// <para>
+    /// ⚠️ 它探的是**两层**：<c>/core/health</c> 要经头的反代到达核心，所以「头活着但核心死了」
+    /// 会如实报不健康。这正是容器编排要的那个判据（页面列表能开、会话却跑不动，比整台挂掉更难查）。
+    /// </para>
+    /// </summary>
+    public bool Health { get; init; }
+
     /// <summary>上游核心的地址，**不带尾斜杠**（横幅、`/config.json`、`/build.json` 用的是同一个字面量）。</summary>
     public string CoreText => Core.GetLeftPart(UriPartial.Path).TrimEnd('/');
 
@@ -95,6 +111,7 @@ internal sealed record RelayOptions
         int? port = null;
         string? bind = null, core = null, token = null, root = null, coreExe = null;
         bool? open = null, direct = null, spawn = null;
+        bool health = false;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -158,6 +175,9 @@ internal sealed record RelayOptions
                     case "--spawn":
                         spawn = true;
                         break;
+                    case "--health":
+                        health = true;
+                        break;
                     default:
                         throw new ArgumentException($"不认识的参数 {arg}。用 --help 看一遍。");
                 }
@@ -202,6 +222,7 @@ internal sealed record RelayOptions
             Direct = direct ?? false,
             Spawn = spawn ?? true,
             CoreExe = string.IsNullOrWhiteSpace(coreExe) ? null : coreExe.Trim(),
+            Health = health,
         }, null, Help: false);
     }
 
@@ -236,6 +257,7 @@ internal sealed record RelayOptions
               --direct          退成「页面直连核心」（为旧 UI / 排错留着）
               --no-spawn        核心没在跑时不要去起它            （LILARA_RELAY_NO_SPAWN=1）
               --no-open         不自动开浏览器
+              --health          当健康检查用：探 /core/health，通退 0、不通退 1
               -h, --help        这一屏
 
             两种连接方式（页面读 /config.json 决定）：

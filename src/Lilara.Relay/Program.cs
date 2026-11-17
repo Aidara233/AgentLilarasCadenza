@@ -24,7 +24,7 @@ using Microsoft.Extensions.Logging;
 // 换设备/换地址/上隧道都要动核心的白名单；经这一层之后，凭据留在进程里，
 // 页面只跟一个源说话，核心的 `LILARA_ALLOWED_ORIGIN` 也就用不上了。
 
-const string RelayVersion = "1.0.0";
+const string RelayVersion = "1.1.0";
 
 // 控制台显式设成 UTF-8：横幅是中文，而 Windows 的重定向/管道默认按机器代码页走——
 // 日志被重定向到文件时（本机实测）会变成一串乱码，等于横幅白印（核心仓 CLI 同一条教训）。
@@ -50,6 +50,10 @@ if (parsed.Error is not null)
 }
 
 var options = parsed.Options!;
+
+// `--health`：只探一层就退——Docker HEALTHCHECK / compose / k8s 用的就是这条命令，
+// 于是镜像里不用为了健康检查装 curl（基础镜像本来也没有）。
+if (options.Health) return await HealthProbeAsync(options);
 
 var (root, rootError) = UiRoot.Resolve(options.Root, AppContext.BaseDirectory);
 if (root is null)
@@ -250,4 +254,21 @@ static string HostForUrl(string address)
     var a = address.Trim();
     if (a.Length > 2 && a[0] == '[' && a[^1] == ']') return a;
     return a.Contains(':') ? $"[{a}]" : a;
+}
+
+// 健康检查：探**自己这个端口**上的 `/core/health`。
+// 为什么不直接探核心：这条路径是经反代回来的——它同时证明了「页面端口在听」与「核心能应答」。
+// ⚠️ 固定走 127.0.0.1：容器里那个进程总是听见 loopback（就算 `--bind 0.0.0.0` 也包含它）。
+static async Task<int> HealthProbeAsync(RelayOptions options)
+{
+    try
+    {
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
+        using var response = await http.GetAsync($"http://127.0.0.1:{options.Port}/core/health");
+        return response.IsSuccessStatusCode ? 0 : 1;
+    }
+    catch (Exception)
+    {
+        return 1;
+    }
 }

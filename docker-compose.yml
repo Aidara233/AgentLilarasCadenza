@@ -1,0 +1,66 @@
+# 一条命令把 Lilara 跑起来：
+#
+#   docker compose up -d --build
+#   # 打开 http://127.0.0.1:17990
+#
+# 默认是「一个容器两个进程」：核心（17988，只在容器内可达）+ 中转节点（17990，对外）。
+# 想让核心也能被别的头 / 直连客户端连上，见文件末尾那一段注释。
+
+services:
+  lilara:
+    build:
+      context: .
+    image: aidara233/agentlilarascadenza:1.1.0
+    container_name: lilara
+    ports:
+      # 只暴露头的端口。核心故意不映射出去——「外面谁能驱动核心」在这一档里只有一个口子。
+      - "17990:17990"
+    environment:
+      # 容器里的头必须听 0.0.0.0，否则 -p 映射进来的流量到不了它。
+      LILARA_HEAD_BIND: 0.0.0.0
+      # 核心只听容器内的 loopback：能到它跟前的只有头。
+      LILARA_BIND: 127.0.0.1
+      # 要开访问令牌就设成 1（token 会打印在容器日志的启动横幅里；头自己接住并转给核心，
+      # 页面一条凭据都不经手）。默认关，与宿主机一致。
+      LILARA_AUTH: "${LILARA_AUTH:-0}"
+    volumes:
+      # 数据根：会话、提供商 key、用量账本。换容器不丢。
+      - lilara-data:/data
+      # 工作区：核心拿进程的工作目录当「项目键」——会话是按项目分目录存的。
+      # 换成你自己的项目目录：`- ${LILARA_WORKSPACE:-./workspace}:/workspace`
+      - ${LILARA_WORKSPACE:-./workspace}:/workspace
+    working_dir: /workspace
+    restart: unless-stopped
+    # relay 的 --health 探的是 /core/health（经反代到核心），所以这条 HEALTHCHECK 同时盯着两层。
+    # 不需要额外写 healthcheck：镜像里已经带了。
+
+volumes:
+  lilara-data:
+
+# --- 分体拓扑（可选）--------------------------------------------------------
+#
+# 想让核心与头分属两个容器（各自伸缩、各自限网），把下面这段接上，
+# 并把上面的 lilara 服务换成只跑头的形态（去掉 LILARA_BIND 那行、另起一个 core 服务）：
+#
+#  core:
+#    image: aidara233/agentlilarascadenza:1.1.0   # 同一镜像，只用里面那个核心可执行文件
+#    entrypoint: ["/app/lilara"]
+#    environment:
+#      LILARA_BIND: 0.0.0.0
+#      LILARA_HOME: /data
+#    volumes:
+#      - lilara-data:/data
+#      - ${LILARA_WORKSPACE:-./workspace}:/workspace
+#    working_dir: /workspace
+#    expose: ["17988"]
+#
+#  head:
+#    build: .
+#    entrypoint: ["/app/lilara-relay", "--core", "http://core:17988", "--no-spawn"]
+#    environment:
+#      LILARA_HEAD_BIND: 0.0.0.0
+#    ports: ["17990:17990"]
+#    depends_on: [core]
+#
+# ⚠️ 分体时头必须带 `--no-spawn`：它起不了另一个容器里的核心，硬起只会得到一个打了数据根锁的
+#    本机核心，而症状是「头连不上核心」——与「核心没起来」完全同形。

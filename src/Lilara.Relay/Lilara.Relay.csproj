@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <RootNamespace>Lilara.Relay</RootNamespace>
     <AssemblyName>lilara-relay</AssemblyName>
+    <Version>1.1.0</Version>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
