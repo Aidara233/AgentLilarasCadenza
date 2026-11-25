@@ -10,7 +10,7 @@ services:
   lilara:
     build:
       context: .
-    image: aidara233/agentlilarascadenza:1.1.0
+    image: aidara233/agentlilarascadenza:1.2.0
     container_name: lilara
     ports:
       # 只暴露头的端口。核心故意不映射出去——「外面谁能驱动核心」在这一档里只有一个口子。
@@ -43,7 +43,7 @@ volumes:
 # 并把上面的 lilara 服务换成只跑头的形态（去掉 LILARA_BIND 那行、另起一个 core 服务）：
 #
 #  core:
-#    image: aidara233/agentlilarascadenza:1.1.0   # 同一镜像，只用里面那个核心可执行文件
+#    image: aidara233/agentlilarascadenza:1.2.0   # 同一镜像，只用里面那个核心可执行文件
 #    entrypoint: ["/app/lilara"]
 #    environment:
 #      LILARA_BIND: 0.0.0.0

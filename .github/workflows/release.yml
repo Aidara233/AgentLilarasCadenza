@@ -1,6 +1,6 @@
 # 推 v* 标签 → 出一体包并挂到 Release。
 #
-#   git tag v1.1.0 && git push origin v1.1.0
+#   git tag v1.2.0 && git push origin v1.2.0
 #
 # 这个仓的包是**三个东西的合体**（核心 + 中转节点 + Cadenza 页面），所以 checkout 必须带
 # 子模块：子模块指针钉在哪，包里的核心与页面就是哪一版——这也是本仓的「版本」唯一的定义。

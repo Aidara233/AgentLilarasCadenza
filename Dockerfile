@@ -2,8 +2,8 @@
 #
 # 一体镜像：核心 + 中转节点 + Cadenza 页面，**一个容器里两个进程**（与宿主机上跑的是同一个拓扑）。
 #
-#   docker build -t aidara233/agentlilarascadenza:1.1.0 .
-#   docker run --rm -p 17990:17990 -v lilara-data:/data aidara233/agentlilarascadenza:1.1.0
+#   docker build -t aidara233/agentlilarascadenza:1.2.0 .
+#   docker run --rm -p 17990:17990 -v lilara-data:/data aidara233/agentlilarascadenza:1.2.0
 #
 # 三条与宿主机**不一样**、且都是刻意的选择：
 #

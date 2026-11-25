@@ -86,7 +86,7 @@ git -C core  status / git -C head status    # 看各自有没有本地改动
 ## 发布（一体包）
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File publish.ps1 [-Version 1.1.0] [-Rids win-x64,linux-x64]
+powershell -NoProfile -ExecutionPolicy Bypass -File publish.ps1 [-Version 1.2.0] [-Rids win-x64,linux-x64]
 ```
 
 产物 `publish/lilara-<ver>-<rid>/` 里是：
@@ -100,7 +100,7 @@ run.cmd / run.sh   解压就能跑的那一条命令
 
 再加一个 zip / tar.gz。**这是核心仓 `docs/实现现状.md` 里「没有统一的发布/安装/启动包」那条的落点。**
 
-推标签就自动出包：`git tag v1.1.0 && git push origin v1.1.0` → `.github/workflows/release.yml`
+推标签就自动出包：`git tag v1.2.0 && git push origin v1.2.0` → `.github/workflows/release.yml`
 在 windows-latest 上跑同一条 `publish.ps1`，把两个包与 `SHA256SUMS` 挂成 Release
 （核心仓与头那个仓各有一份同形的、只出自己那半的工作流）。
 
@@ -110,7 +110,7 @@ run.cmd / run.sh   解压就能跑的那一条命令
 ## Docker
 
 ```bash
-docker compose up -d --build        # 也可以：docker build -t aidara233/agentlilarascadenza:1.1.0 .
+docker compose up -d --build        # 也可以：docker build -t aidara233/agentlilarascadenza:1.2.0 .
 # 打开 http://127.0.0.1:17990
 ```
 
@@ -168,6 +168,6 @@ docker compose up -d --build        # 也可以：docker build -t aidara233/agen
   在本机按 `linux-x64` 逐字跑过（产物是 ELF apphost），`--health` 也正反两例验过，
   但「镜像能起来、卷能挂、HEALTHCHECK 真的变 healthy」这三件只能在你那边第一次 `docker compose up` 时见分晓。
 - ⚠️ **子模块的版本指针**：本仓钉住的是 `core/` 与 `head/` 各自的提交，不是标签。
-  1.1.0 那一版对应哪两个提交，看 `git submodule status`。
+  1.2.0 那一版对应哪两个提交，看 `git submodule status`。
 
 
